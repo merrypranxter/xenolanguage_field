@@ -13,21 +13,39 @@ The goal: ontologies rendered as signal.
 ```
 species/          # Species definitions: sensorium, temporality, selfhood
 languages/        # Complete language systems: phonology, morphology, syntax
-signals/          # GLSL/audio/procedural outputs: the language as raw signal
+signals/          # GLSL fragment shaders: the language as raw signal
 corpus/           # Example utterances with translation notes
+index.html        # Interactive signal viewer (open in browser)
 ```
 
 ## Running
 
-- Visual languages: self-contained GLSL fragment shaders
-- Sonic languages: Web Audio API patches, SuperCollider code
-- Spatial languages: procedural geometry (Three.js, Blender)
+Open `index.html` in a browser. The viewer loads each GLSL shader and lets you
+browse all nine utterances across the three language systems.
+
+- Visual languages: self-contained GLSL fragment shaders (no build step needed)
+- Sonic languages: Web Audio API patches, SuperCollider code (planned)
+- Spatial languages: procedural geometry (Three.js, Blender) (planned)
 
 ## Current Species
 
-- [ ] _temporal_swarm — distributed time-perception, phase-based communication
-- [ ] _magnetic_fielder — magnetoreceptive, field-topology language
-- [ ] _substrate_cloud — non-localized intelligence, state-transition syntax
+- [x] _temporal_swarm — distributed time-perception, phase-based communication
+- [x] _magnetic_fielder — magnetoreceptive, field-topology language
+- [x] _substrate_cloud — non-localized intelligence, state-transition syntax
+
+## Signals
+
+| File | Species | Utterance |
+|------|---------|-----------|
+| `signals/chronolect_utterance_01.frag` | Temporal Swarm | "I remember the last time we met" |
+| `signals/chronolect_utterance_02.frag` | Temporal Swarm | "I will probably go there tomorrow" |
+| `signals/chronolect_utterance_03.frag` | Temporal Swarm | "I love you" |
+| `signals/magnetolect_utterance_01.frag` | Magnetic Fielder | "The storm is coming" |
+| `signals/magnetolect_utterance_02.frag` | Magnetic Fielder | "I am lost" |
+| `signals/magnetolect_utterance_03.frag` | Magnetic Fielder | "We are one" |
+| `signals/substrate_utterance_01.frag` | Substrate Cloud | "I am confused" |
+| `signals/substrate_utterance_02.frag` | Substrate Cloud | "I trust you" |
+| `signals/substrate_utterance_03.frag` | Substrate Cloud | "We are dying" |
 
 ## References
 
