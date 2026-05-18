@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xenolanguage_field — Signal Viewer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #050508;
+      color: #c8cce0;
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 1.5rem 2rem 1rem;
+      border-bottom: 1px solid #1a1c2a;
+    }
+
+    header h1 {
+      font-size: 1rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #6a7099;
+    }
+
+    header p {
+      font-size: 0.75rem;
+      color: #3a3d55;
+      margin-top: 0.3rem;
+      letter-spacing: 0.1em;
+    }
+
+    .layout {
+      display: flex;
+      flex: 1;
+    }
+
+    /* Sidebar */
+    nav {
+      width: 260px;
+      flex-shrink: 0;
+      border-right: 1px solid #1a1c2a;
+      overflow-y: auto;
+      padding: 1rem 0;
+    }
+
+    .nav-group {
+      margin-bottom: 1rem;
+    }
+
+    .nav-group-label {
+      padding: 0.3rem 1.2rem;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #3a3d55;
+    }
+
+    .nav-item {
+      padding: 0.5rem 1.2rem;
+      cursor: pointer;
+      font-size: 0.75rem;
+      color: #5a5e80;
+      border-left: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      color: #9098c0;
+      background: #0d0e18;
+    }
+
+    .nav-item.active {
+      color: #b0b8e8;
+      border-left-color: #4a52a0;
+      background: #0d0e18;
+    }
+
+    .nav-item .concept {
+      font-size: 0.65rem;
+      color: #3a3d55;
+      margin-top: 0.2rem;
+    }
+
+    .nav-item.active .concept {
+      color: #5a5e80;
+    }
+
+    /* Main viewer */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem;
+      gap: 1rem;
+    }
+
+    .signal-meta {
+      font-size: 0.7rem;
+      color: #4a4e70;
+      letter-spacing: 0.1em;
+    }
+
+    .signal-meta span {
+      color: #6a7099;
+    }
+
+    #canvas-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border: 1px solid #1a1c2a;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .signal-structure {
+      font-size: 0.7rem;
+      color: #3a3d55;
+      line-height: 1.8;
+      border-left: 2px solid #1a1c2a;
+      padding-left: 1rem;
+      max-width: 600px;
+    }
+
+    .signal-structure strong {
+      color: #5a5e80;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    button {
+      background: #0d0e18;
+      color: #5a5e80;
+      border: 1px solid #1a1c2a;
+      padding: 0.4rem 0.8rem;
+      font-family: inherit;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    button:hover {
+      color: #9098c0;
+      border-color: #3a3d55;
+    }
+
+    button.active {
+      color: #b0b8e8;
+      border-color: #4a52a0;
+    }
+
+    .time-display {
+      font-size: 0.65rem;
+      color: #3a3d55;
+      margin-left: auto;
+    }
+
+    footer {
+      padding: 0.75rem 2rem;
+      border-top: 1px solid #1a1c2a;
+      font-size: 0.6rem;
+      color: #2a2d3a;
+      letter-spacing: 0.1em;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>xenolanguage_field</h1>
+  <p>signal viewer — ontologies rendered as signal</p>
+</header>
+
+<div class="layout">
+
+  <nav id="nav"></nav>
+
+  <main>
+    <div class="signal-meta" id="meta">
+      <span id="species-label">—</span> &nbsp;/&nbsp;
+      <span id="concept-label">—</span>
+    </div>
+
+    <div id="canvas-container">
+      <canvas id="glcanvas"></canvas>
+    </div>
+
+    <div class="controls">
+      <button id="btn-pause">pause</button>
+      <button id="btn-reset">reset time</button>
+      <span class="time-display" id="time-display">t = 0.000</span>
+    </div>
+
+    <div class="signal-structure" id="signal-structure"></div>
+  </main>
+
+</div>
+
+<footer>if it can be decoded back to english with a substitution table, it failed.</footer>
+
+<script>
+// ─── Signal catalogue ──────────────────────────────────────────────────────
+
+const SIGNALS = [
+  {
+    species: 'Temporal Swarm',
+    tag: 'chronolect',
+    utterance: 1,
+    concept: '"I remember the last time we met"',
+    file: 'signals/chronolect_utterance_01.frag',
+    structure: [
+      '[past-memory: high-certainty, phase-weight=0.8]',
+      'superposed with [present-action: social-acknowledgment]',
+      'harmonic cascade to [past-memory: shared-event, phase-weight=0.4]',
+    ],
+  },
+  {
+    species: 'Temporal Swarm',
+    tag: 'chronolect',
+    utterance: 2,
+    concept: '"I will probably go there tomorrow"',
+    file: 'signals/chronolect_utterance_02.frag',
+    structure: [
+      '[future-intent: broad-envelope, phase-weight=0.6]',
+      'entrained to [present-action: spatial-calculation]',
+      'harmonic cascade to [future-intent: alternative-paths]',
+    ],
+  },
+  {
+    species: 'Temporal Swarm',
+    tag: 'chronolect',
+    utterance: 3,
+    concept: '"I love you"',
+    file: 'signals/chronolect_utterance_03.frag',
+    structure: [
+      '[past-memory: you, phase-weight=1.0]',
+      '⊕ [present-action: you, phase-weight=1.0]',
+      '⊕ [future-intent: you, phase-weight=1.0]',
+      'all frequencies locked — maximum coherence',
+      'harmonic cascade through all temporal registers',
+    ],
+  },
+  {
+    species: 'Magnetic Fielder',
+    tag: 'magnetolect',
+    utterance: 1,
+    concept: '"The storm is coming"',
+    file: 'signals/magnetolect_utterance_01.frag',
+    structure: [
+      '[topology: planetary-scale field lines]',
+      '[gradient: increasing across all lines]',
+      '[polarity: North dominance increasing]',
+      '[duration: building over many cycles]',
+    ],
+  },
+  {
+    species: 'Magnetic Fielder',
+    tag: 'magnetolect',
+    utterance: 2,
+    concept: '"I am lost"',
+    file: 'signals/magnetolect_utterance_02.frag',
+    structure: [
+      '[field-line: isolated]',
+      '[perturbation: weak]',
+      '[topology: disconnected from main field]',
+      '[duration: sustained, no change]',
+    ],
+  },
+  {
+    species: 'Magnetic Fielder',
+    tag: 'magnetolect',
+    utterance: 3,
+    concept: '"We are one"',
+    file: 'signals/magnetolect_utterance_03.frag',
+    structure: [
+      '[field-line: mine] + [field-line: yours] → [reconnection: complete]',
+      '[perturbation: sustained, maximum gradient at junction]',
+      '[duration: permanent — no pinch-off]',
+    ],
+  },
+  {
+    species: 'Substrate Cloud',
+    tag: 'substrate',
+    utterance: 1,
+    concept: '"I am confused"',
+    file: 'signals/substrate_utterance_01.frag',
+    structure: [
+      '[register: working-memory]',
+      '[delta: oscillating, no convergence]',
+      '[entropy: high]',
+      '[parallel-write: sensory-input, conflicting values]',
+      '[pointer: multiple, unresolved]',
+    ],
+  },
+  {
+    species: 'Substrate Cloud',
+    tag: 'substrate',
+    utterance: 2,
+    concept: '"I trust you"',
+    file: 'signals/substrate_utterance_02.frag',
+    structure: [
+      '[register: persistent-storage]',
+      '[delta: write to your process space]',
+      '[entropy: low]',
+      '[pointer: your process ID, verified]',
+      '[recursive-call: error-handling routine for your process only]',
+    ],
+  },
+  {
+    species: 'Substrate Cloud',
+    tag: 'substrate',
+    utterance: 3,
+    concept: '"We are dying"',
+    file: 'signals/substrate_utterance_03.frag',
+    structure: [
+      '[register: all] [delta: rapid decay] [entropy: maximum]',
+      '[interrupt: unhandled exception] [pointer: null]',
+      '[parallel-write: cascading failures across all registers]',
+    ],
+  },
+];
+
+// ─── GL setup ─────────────────────────────────────────────────────────────
+
+const canvas = document.getElementById('glcanvas');
+const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+if (!gl) alert('WebGL not supported — try a modern browser.');
+
+const VERT_SRC = `
+attribute vec2 a_pos;
+void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
+`;
+
+let program = null;
+let uTime = null, uRes = null;
+let startTime = performance.now();
+let paused = false;
+let pausedAt = 0;
+let animId = null;
+
+function compileShader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(s));
+    gl.deleteShader(s);
+    return null;
+  }
+  return s;
+}
+
+function buildProgram(fragSrc) {
+  if (program) gl.deleteProgram(program);
+  const vs = compileShader(gl.VERTEX_SHADER, VERT_SRC);
+  const fs = compileShader(gl.FRAGMENT_SHADER, fragSrc);
+  if (!vs || !fs) return false;
+
+  const p = gl.createProgram();
+  gl.attachShader(p, vs);
+  gl.attachShader(p, fs);
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(p));
+    return false;
+  }
+
+  program = p;
+  uTime = gl.getUniformLocation(program, 'u_time');
+  uRes = gl.getUniformLocation(program, 'u_resolution');
+
+  const posLoc = gl.getAttribLocation(program, 'a_pos');
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+  return true;
+}
+
+function resizeCanvas() {
+  const container = document.getElementById('canvas-container');
+  canvas.width = container.clientWidth;
+  canvas.height = container.clientHeight;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+
+function render() {
+  if (!program) { animId = requestAnimationFrame(render); return; }
+  const elapsed = paused
+    ? (pausedAt - startTime) / 1000
+    : (performance.now() - startTime) / 1000;
+
+  document.getElementById('time-display').textContent = `t = ${elapsed.toFixed(3)}`;
+
+  gl.useProgram(program);
+  if (uTime) gl.uniform1f(uTime, elapsed);
+  if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  animId = requestAnimationFrame(render);
+}
+
+// ─── Navigation ────────────────────────────────────────────────────────────
+
+let currentIndex = -1;
+
+function buildNav() {
+  const nav = document.getElementById('nav');
+  const groups = {};
+  SIGNALS.forEach((s, i) => {
+    if (!groups[s.species]) groups[s.species] = [];
+    groups[s.species].push({ s, i });
+  });
+
+  for (const [species, items] of Object.entries(groups)) {
+    const g = document.createElement('div');
+    g.className = 'nav-group';
+
+    const label = document.createElement('div');
+    label.className = 'nav-group-label';
+    label.textContent = species;
+    g.appendChild(label);
+
+    items.forEach(({ s, i }) => {
+      const item = document.createElement('div');
+      item.className = 'nav-item';
+      item.dataset.index = i;
+      item.innerHTML = `${s.tag} ${s.utterance.toString().padStart(2,'0')}<div class="concept">${s.concept}</div>`;
+      item.addEventListener('click', () => loadSignal(i));
+      g.appendChild(item);
+    });
+
+    nav.appendChild(g);
+  }
+}
+
+async function loadSignal(index) {
+  if (index === currentIndex) return;
+  currentIndex = index;
+
+  // Update nav active state
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.index) === index);
+  });
+
+  const sig = SIGNALS[index];
+
+  // Update meta
+  document.getElementById('species-label').textContent = sig.species;
+  document.getElementById('concept-label').textContent = sig.concept;
+
+  // Update structure
+  const structEl = document.getElementById('signal-structure');
+  structEl.innerHTML = sig.structure
+    .map(line => `<div><strong>→</strong> ${line}</div>`)
+    .join('');
+
+  // Load shader
+  try {
+    const resp = await fetch(sig.file);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const src = await resp.text();
+    resizeCanvas();
+    buildProgram(src);
+    startTime = performance.now();
+  } catch (e) {
+    console.error('Failed to load shader:', sig.file, e);
+  }
+}
+
+// ─── Controls ──────────────────────────────────────────────────────────────
+
+document.getElementById('btn-pause').addEventListener('click', function () {
+  paused = !paused;
+  if (paused) {
+    pausedAt = performance.now();
+    this.classList.add('active');
+    this.textContent = 'resume';
+  } else {
+    startTime += performance.now() - pausedAt;
+    this.classList.remove('active');
+    this.textContent = 'pause';
+  }
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  startTime = performance.now();
+  if (paused) pausedAt = startTime;
+});
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+});
+
+// ─── Boot ──────────────────────────────────────────────────────────────────
+
+buildNav();
+resizeCanvas();
+render();
+loadSignal(0);
+</script>
+
+</body>
+</html>
